@@ -1,6 +1,12 @@
-import type {AutocompleteInteraction, ChatInputCommandInteraction, GuildBasedChannel} from 'discord.js';
+import {
+    ActionRowBuilder,
+    AutocompleteInteraction, ButtonBuilder,
+    ChatInputCommandInteraction,
+    GuildBasedChannel,
+    GuildTextBasedChannel
+} from 'discord.js';
 import {PermissionsBitField} from 'discord.js';
-import {ApplicationCommandOptionType, ApplicationCommandType} from 'discord-api-types/v10';
+import {ApplicationCommandOptionType, ApplicationCommandType, ButtonStyle} from 'discord-api-types/v10';
 
 import type SuggestionsBot from '../../suggestionsBot';
 import KingsDevEmbedBuilder from '../../utils/kingsDevEmbedBuilder';
@@ -139,11 +145,143 @@ export default class SuggestionCommand extends BaseCommand {
     async accept(interaction: ChatInputCommandInteraction) {
         const messageUrl = interaction.options.getString('message-url', true);
         const reason = interaction.options.getString('reason', false);
+
+        const suggestions = await this.client.main.mongo.fetchSuggestions(interaction.guildId!);
+        if (!suggestions) return interaction.replyError('No suggestions have been posted in this server.');
+
+        const suggestion = suggestions[messageUrl.replace(/\./g, '[D]')];
+        if (!suggestion) return interaction.replyError('This suggestion does not exist.');
+
+        const channels = await this.client.main.mongo.fetchGuildChannels(interaction.guildId!);
+        if (!channels) return interaction.replyError('No suggestion channel has been set.');
+
+        const sentInId = messageUrl.split('/').slice(-2)[0];
+        const messageId = messageUrl.split('/').slice(-1)[0];
+
+        const channelSentIn = await interaction.guild!.channels.fetch(sentInId)
+            .catch(() => undefined);
+        if (!channelSentIn) return interaction.replyError('Unable to fetch the channel this suggestion was sent in.');
+
+        const suggestionMessage = await (channelSentIn as GuildTextBasedChannel).messages.fetch(messageId)
+            .catch(() => undefined);
+        if (!suggestionMessage) return interaction.replyError('Unable to fetch the suggestion message.');
+
+        await suggestionMessage.delete();
+
+        const acceptedChannel = await interaction.guild!.channels.fetch(channels.accepted)
+            .catch(() => undefined);
+        if (!acceptedChannel) return interaction.replyError('Unable to fetch the accepted suggestions channel.');
+
+        await (acceptedChannel as GuildTextBasedChannel).send({
+            embeds: [
+                new KingsDevEmbedBuilder()
+                    .setAuthor({
+                        name: `Suggestion | ${suggestion.author.tag}`,
+                        iconURL: suggestion.author.avatarURL || undefined,
+                    })
+                    .setDescription(suggestion.content)
+                    .setColor('Green')
+                    .addField('Reason', reason || 'No reason provided.'),
+            ],
+            components: [
+                new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:upvote')
+                            .setStyle(ButtonStyle.Success)
+                            .setLabel(suggestion.upvotes.length.toString())
+                            .setEmoji('👍')
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:count')
+                            .setStyle(ButtonStyle.Primary)
+                            .setLabel((suggestion.upvotes.length - suggestion.downvotes.length).toString())
+                            .setEmoji('#️⃣')
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:downvote')
+                            .setStyle(ButtonStyle.Danger)
+                            .setLabel(suggestion.downvotes.length.toString())
+                            .setEmoji('👎')
+                            .setDisabled(true),
+                    )
+            ],
+        });
+
+        await this.client.main.mongo.removeSuggestion(interaction.guildId!, messageUrl);
+
+        await interaction.replySuccess('The suggestion has been accepted.');
     }
 
     async deny(interaction: ChatInputCommandInteraction) {
         const messageUrl = interaction.options.getString('message-url', true);
         const reason = interaction.options.getString('reason', false);
+
+        const suggestions = await this.client.main.mongo.fetchSuggestions(interaction.guildId!);
+        if (!suggestions) return interaction.replyError('No suggestions have been posted in this server.');
+
+        const suggestion = suggestions[messageUrl.replace(/\./g, '[D]')];
+        if (!suggestion) return interaction.replyError('This suggestion does not exist.');
+
+        const channels = await this.client.main.mongo.fetchGuildChannels(interaction.guildId!);
+        if (!channels) return interaction.replyError('No suggestion channel has been set.');
+
+        const sentInId = messageUrl.split('/').slice(-2)[0];
+        const messageId = messageUrl.split('/').slice(-1)[0];
+
+        const channelSentIn = await interaction.guild!.channels.fetch(sentInId)
+            .catch(() => undefined);
+        if (!channelSentIn) return interaction.replyError('Unable to fetch the channel this suggestion was sent in.');
+
+        const suggestionMessage = await (channelSentIn as GuildTextBasedChannel).messages.fetch(messageId)
+            .catch(() => undefined);
+        if (!suggestionMessage) return interaction.replyError('Unable to fetch the suggestion message.');
+
+        await suggestionMessage.delete();
+
+        const deniedChannel = await interaction.guild!.channels.fetch(channels.denied)
+            .catch(() => undefined);
+        if (!deniedChannel) return interaction.replyError('Unable to fetch the accepted suggestions channel.');
+
+        await (deniedChannel as GuildTextBasedChannel).send({
+            embeds: [
+                new KingsDevEmbedBuilder()
+                    .setAuthor({
+                        name: `Suggestion | ${suggestion.author.tag}`,
+                        iconURL: suggestion.author.avatarURL || undefined,
+                    })
+                    .setDescription(suggestion.content)
+                    .setColor('Red')
+                    .addField('Reason', reason || 'No reason provided.'),
+            ],
+            components: [
+                new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:upvote')
+                            .setStyle(ButtonStyle.Success)
+                            .setLabel(suggestion.upvotes.length.toString())
+                            .setEmoji('👍')
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:count')
+                            .setStyle(ButtonStyle.Primary)
+                            .setLabel((suggestion.upvotes.length - suggestion.downvotes.length).toString())
+                            .setEmoji('#️⃣')
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:downvote')
+                            .setStyle(ButtonStyle.Danger)
+                            .setLabel(suggestion.downvotes.length.toString())
+                            .setEmoji('👎')
+                            .setDisabled(true),
+                    )
+            ],
+        });
+
+        await this.client.main.mongo.removeSuggestion(interaction.guildId!, messageUrl);
+
+        await interaction.replySuccess('The suggestion has been denied.');
     }
 
     async remove(interaction: ChatInputCommandInteraction) {
