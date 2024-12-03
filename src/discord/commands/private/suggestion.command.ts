@@ -1,4 +1,4 @@
-import type {AutocompleteInteraction, ChatInputCommandInteraction} from 'discord.js';
+import type {AutocompleteInteraction, ChatInputCommandInteraction, GuildBasedChannel} from 'discord.js';
 import {PermissionsBitField} from 'discord.js';
 import {ApplicationCommandOptionType, ApplicationCommandType} from 'discord-api-types/v10';
 
@@ -20,8 +20,20 @@ export default class SuggestionCommand extends BaseCommand {
                     type: ApplicationCommandOptionType.Subcommand,
                     options: [
                         {
-                            name: 'channel',
+                            name: 'suggestions',
                             description: 'The channel where suggestions will be sent.',
+                            type: ApplicationCommandOptionType.Channel,
+                            required: true,
+                        },
+                        {
+                            name: 'accepted',
+                            description: 'The channel where accepted suggestions will be sent.',
+                            type: ApplicationCommandOptionType.Channel,
+                            required: true,
+                        },
+                        {
+                            name: 'denied',
+                            description: 'The channel where denied suggestions will be sent.',
                             type: ApplicationCommandOptionType.Channel,
                             required: true,
                         },
@@ -88,6 +100,8 @@ export default class SuggestionCommand extends BaseCommand {
     }
 
     async execute(interaction: ChatInputCommandInteraction) {
+        await interaction.deferReply();
+
         switch (interaction.options.getSubcommand()) {
             case 'set-channel':
                 return this.setChannel(interaction);
@@ -105,7 +119,21 @@ export default class SuggestionCommand extends BaseCommand {
     }
 
     async setChannel(interaction: ChatInputCommandInteraction) {
-        const channel = interaction.options.getChannel('channel', true);
+        const suggestionsChannel = interaction.options.getChannel('suggestions', true) as GuildBasedChannel;
+        const acceptedChannel = interaction.options.getChannel('accepted', true) as GuildBasedChannel;
+        const deniedChannel = interaction.options.getChannel('denied', true) as GuildBasedChannel;
+
+        if (
+            !(suggestionsChannel.isTextBased() && acceptedChannel.isTextBased() && deniedChannel.isTextBased()) ||
+            suggestionsChannel.guildId !== interaction.guildId ||
+            acceptedChannel.guildId !== interaction.guildId ||
+            deniedChannel.guildId !== interaction.guildId ||
+            (suggestionsChannel.isVoiceBased() || acceptedChannel.isVoiceBased() || deniedChannel.isVoiceBased()) ||
+            (suggestionsChannel.isThread() || acceptedChannel.isThread() || deniedChannel.isThread()))
+            return interaction.replyError('Invalid channel type given.');
+
+        await this.client.main.mongo.setGuildChannels(interaction.guildId!, suggestionsChannel.id, acceptedChannel.id, deniedChannel.id);
+        await interaction.replySuccess(`The following channels will now be used:\n**Suggestions: **<#${suggestionsChannel.id}>\n**Accepted: **<#${acceptedChannel.id}>\n**Denied: **<#${deniedChannel.id}>`);
     }
 
     async accept(interaction: ChatInputCommandInteraction) {
