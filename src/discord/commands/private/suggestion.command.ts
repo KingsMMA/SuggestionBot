@@ -1,0 +1,129 @@
+import type {AutocompleteInteraction, ChatInputCommandInteraction} from 'discord.js';
+import {PermissionsBitField} from 'discord.js';
+import {ApplicationCommandOptionType, ApplicationCommandType} from 'discord-api-types/v10';
+
+import type SuggestionsBot from '../../suggestionsBot';
+import KingsDevEmbedBuilder from '../../utils/kingsDevEmbedBuilder';
+import BaseCommand from '../base.command';
+
+export default class SuggestionCommand extends BaseCommand {
+    constructor(client: SuggestionsBot) {
+        super(client, {
+            name: 'suggestion',
+            description: 'Manage the server\'s suggestions.',
+            type: ApplicationCommandType.ChatInput,
+            default_member_permissions: PermissionsBitField.Flags.Administrator.toString(),
+            options: [
+                {
+                    name: 'set-channel',
+                    description: 'Set the channel where suggestions will be sent.',
+                    type: ApplicationCommandOptionType.Subcommand,
+                    options: [
+                        {
+                            name: 'channel',
+                            description: 'The channel where suggestions will be sent.',
+                            type: ApplicationCommandOptionType.Channel,
+                            required: true,
+                        },
+                    ],
+                },
+                {
+                    name: 'accept',
+                    description: 'Accept a suggestion.',
+                    type: ApplicationCommandOptionType.Subcommand,
+                    options: [
+                        {
+                            name: 'message-url',
+                            description: 'The message URL of the suggestion to accept.',
+                            type: ApplicationCommandOptionType.String,
+                            required: true,
+                        },
+                        {
+                            name: 'reason',
+                            description: 'The reason for accepting the suggestion.',
+                            type: ApplicationCommandOptionType.String,
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    name: 'deny',
+                    description: 'Deny a suggestion.',
+                    type: ApplicationCommandOptionType.Subcommand,
+                    options: [
+                        {
+                            name: 'message-url',
+                            description: 'The message URL of the suggestion to deny.',
+                            type: ApplicationCommandOptionType.String,
+                            required: true,
+                        },
+                        {
+                            name: 'reason',
+                            description: 'The reason for denying the suggestion.',
+                            type: ApplicationCommandOptionType.String,
+                            required: false,
+                        },
+                    ],
+                },
+                {
+                    name: 'remove',
+                    description: 'Remove a suggestion without accepting/denying it.',
+                    type: ApplicationCommandOptionType.Subcommand,
+                    options: [
+                        {
+                            name: 'message-url',
+                            description: 'The message URL of the suggestion to remove.',
+                            type: ApplicationCommandOptionType.String,
+                            required: true,
+                        },
+                    ],
+                },
+                {
+                    name: 'list',
+                    description: 'List all suggestions.',
+                    type: ApplicationCommandOptionType.Subcommand,
+                },
+            ],
+        });
+    }
+
+    async execute(interaction: ChatInputCommandInteraction) {
+        switch (interaction.options.getSubcommand()) {
+            case 'set-channel':
+                return this.setChannel(interaction);
+            case 'accept':
+                return this.accept(interaction);
+            case 'deny':
+                return this.deny(interaction);
+            case 'remove':
+                return this.remove(interaction);
+            case 'list':
+                return this.list(interaction);
+            default:
+                return interaction.replyError('Invalid subcommand.');
+        }
+    }
+
+    async setChannel(interaction: ChatInputCommandInteraction) {
+        const channel = interaction.options.getChannel('channel', true);
+    }
+
+    async accept(interaction: ChatInputCommandInteraction) {
+        const messageUrl = interaction.options.getString('message-url', true);
+        const reason = interaction.options.getString('reason', false);
+    }
+
+    async deny(interaction: ChatInputCommandInteraction) {
+        const messageUrl = interaction.options.getString('message-url', true);
+        const reason = interaction.options.getString('reason', false);
+    }
+
+    async remove(interaction: ChatInputCommandInteraction) {
+        const messageUrl = interaction.options.getString('message-url', true);
+    }
+
+    async list(interaction: ChatInputCommandInteraction) {
+
+    }
+
+}
