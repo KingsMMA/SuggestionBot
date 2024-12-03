@@ -45,6 +45,12 @@ export default class Mongo {
                 { upsert: true });
     }
 
+    async fetchGuildChannels(guild_id: Snowflake): Promise<GuildData['channels'] | null> {
+        return await this.mongo.collection('guilds')
+            .findOne({ guild_id }, { projection: { _id: 0, channels: 1 } })
+            .then(doc => doc?.channels || null);
+    }
+
     async postSuggestion(guild_id: Snowflake, message_url: string, author: Snowflake, content: string): Promise<void> {
         return void this.mongo.collection('guilds')
             .updateOne(
