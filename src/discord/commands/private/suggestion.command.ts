@@ -286,10 +286,48 @@ export default class SuggestionCommand extends BaseCommand {
 
     async remove(interaction: ChatInputCommandInteraction) {
         const messageUrl = interaction.options.getString('message-url', true);
+
+        const suggestions = await this.client.main.mongo.fetchSuggestions(interaction.guildId!);
+        if (!suggestions) return interaction.replyError('No suggestions have been posted in this server.');
+
+        const suggestion = suggestions[messageUrl.replace(/\./g, '[D]')];
+        if (!suggestion) return interaction.replyError('This suggestion does not exist.  If there is a message for it, you may safely delete it.');
+
+        await this.client.main.mongo.removeSuggestion(interaction.guildId!, messageUrl);
+
+        const sentInId = messageUrl.split('/').slice(-2)[0];
+        const messageId = messageUrl.split('/').slice(-1)[0];
+
+        const channelSentIn = await interaction.guild!.channels.fetch(sentInId)
+            .catch(() => undefined);
+        if (!channelSentIn) return interaction.replyError('Unable to fetch the channel this suggestion was sent in.');
+
+        const suggestionMessage = await (channelSentIn as GuildTextBasedChannel).messages.fetch(messageId)
+            .catch(() => undefined);
+        if (!suggestionMessage) return interaction.replyError('Unable to fetch the suggestion message.');
+
+        await suggestionMessage.delete();
+
+        await interaction.replySuccess('The suggestion has been removed.');
     }
 
     async list(interaction: ChatInputCommandInteraction) {
+        const suggestions = await this.client.main.mongo.fetchSuggestions(interaction.guildId!);
+        if (!suggestions) return interaction.replyError('No suggestions have been posted in this server.');
 
+        const suggestionList = Object.entries(suggestions)
+            .sort(([key, value], [key2, value2]) => (value2.upvotes.length - value2.downvotes.length) - (value.upvotes.length - value.downvotes.length))
+            .map(([key, value]) => {
+            return `**${key.replace(/\[D]/g, '.')}**\n**Author:** ${value.author.tag}\n**Content:** ${value.content}\n**Net Vote:** ${value.upvotes.length - value.downvotes.length}`;
+        });
+
+        await interaction.editReply({
+            embeds: [
+                new KingsDevEmbedBuilder()
+                    .setTitle('Suggestions')
+                    .setDescription(suggestionList.join('\n\n')),
+            ],
+        });
     }
 
 }
