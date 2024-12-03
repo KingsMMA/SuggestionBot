@@ -1,8 +1,8 @@
+import type { Snowflake } from 'discord.js';
 import type { Db } from 'mongodb';
 import { MongoClient } from 'mongodb';
 
 import type Main from '../main';
-import {Snowflake} from "discord.js";
 
 export type Suggestion = {
     posted: number;
@@ -46,7 +46,7 @@ export default class Mongo {
                     'channels.suggestions': suggestions,
                     'channels.accepted': accepted,
                     'channels.denied': denied,
-                    } },
+                } },
                 { upsert: true });
     }
 
@@ -62,13 +62,13 @@ export default class Mongo {
                 { guild_id: guild_id },
                 { $set: { [`suggestions.${message_url.replace(/\./g, '[D]')}`]: {
                     posted: Date.now(),
-                            author: {
-                                tag: authorTag,
-                                avatarURL: authorAvatar
-                            },
-                            content: content,
-                            upvotes: [],
-                            downvotes: [] } } },
+                    author: {
+                        tag: authorTag,
+                        avatarURL: authorAvatar
+                    },
+                    content: content,
+                    upvotes: [],
+                    downvotes: [] } } },
                 { upsert: true });
     }
 

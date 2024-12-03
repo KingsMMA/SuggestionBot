@@ -1,13 +1,14 @@
-import {ActionRowBuilder, ButtonBuilder, ClientOptions, Message} from 'discord.js';
+import type { ClientOptions, Message } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder } from 'discord.js';
 import { Client, Collection } from 'discord.js';
+import { ButtonStyle } from 'discord-api-types/v10';
 import type { PathLike } from 'fs';
 import path from 'path';
 
 import type Main from '../main/main';
+import type { Suggestion } from '../main/util/mongo';
 import type BaseCommand from './commands/base.command';
-import {GuildData, Suggestion} from "../main/util/mongo";
-import KingsDevEmbedBuilder from "./utils/kingsDevEmbedBuilder";
-import {ButtonStyle} from "discord-api-types/v10";
+import KingsDevEmbedBuilder from './utils/kingsDevEmbedBuilder';
 
 export default class SuggestionsBot extends Client {
     main: Main;
@@ -45,7 +46,7 @@ export default class SuggestionsBot extends Client {
                     .setAuthor({
                         name: `Suggestion | ${suggestion.author.tag}`,
                         iconURL: suggestion.author.avatarURL || undefined,
-                    }, )
+                    } )
                     .setDescription(suggestion.content)
                     .setColor(948466)
             ],

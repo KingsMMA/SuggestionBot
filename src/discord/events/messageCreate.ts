@@ -1,7 +1,9 @@
+import type { Message } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder } from 'discord.js';
+import { ButtonStyle, ThreadAutoArchiveDuration } from 'discord-api-types/v10';
+
 import type SuggestionsBot from '../suggestionsBot';
-import {ActionRowBuilder, ButtonBuilder, Message} from "discord.js";
-import KingsDevEmbedBuilder from "../utils/kingsDevEmbedBuilder";
-import {ButtonStyle, ThreadAutoArchiveDuration} from "discord-api-types/v10";
+import KingsDevEmbedBuilder from '../utils/kingsDevEmbedBuilder';
 
 export default class {
     client: SuggestionsBot;
@@ -16,17 +18,17 @@ export default class {
         if (!message.guildId) return;
 
         const { suggestions, accepted, denied } = await this.client.main.mongo.fetchGuildChannels(message.guildId) ||
-            {suggestions: null, accepted: null, denied: null};
+            { suggestions: null, accepted: null, denied: null };
         if (!suggestions) return;
         if (message.channelId !== suggestions) return;
 
-        let suggestionMessage = await message.channel.send({
+        const suggestionMessage = await message.channel.send({
             embeds: [
                 new KingsDevEmbedBuilder()
                     .setAuthor({
                         name: `Suggestion | ${message.author.tag}`,
                         iconURL: message.author.avatarURL() || undefined,
-                    }, )
+                    } )
                     .setDescription(message.content)
                     .setColor(948466)
             ],

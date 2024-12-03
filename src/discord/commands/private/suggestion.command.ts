@@ -1,12 +1,13 @@
-import {
-    ActionRowBuilder,
-    AutocompleteInteraction, ButtonBuilder,
+import type {
     ChatInputCommandInteraction,
     GuildBasedChannel,
     GuildTextBasedChannel
 } from 'discord.js';
-import {PermissionsBitField} from 'discord.js';
-import {ApplicationCommandOptionType, ApplicationCommandType, ButtonStyle} from 'discord-api-types/v10';
+import {
+    ActionRowBuilder, ButtonBuilder
+} from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
+import { ApplicationCommandOptionType, ApplicationCommandType, ButtonStyle } from 'discord-api-types/v10';
 
 import type SuggestionsBot from '../../suggestionsBot';
 import KingsDevEmbedBuilder from '../../utils/kingsDevEmbedBuilder';

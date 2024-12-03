@@ -1,5 +1,6 @@
 import chalk from 'chalk';
-import {ButtonInteraction, InteractionResponse, Message} from 'discord.js';
+import type { InteractionResponse, Message } from 'discord.js';
+import { ButtonInteraction } from 'discord.js';
 import { CommandInteraction } from 'discord.js';
 
 import KingsDevEmbedBuilder from './kingsDevEmbedBuilder';
