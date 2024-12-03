@@ -4,6 +4,17 @@ import { MongoClient } from 'mongodb';
 import type Main from '../main';
 import {Snowflake} from "discord.js";
 
+export type Suggestion = {
+    posted: number;
+    author: {
+        tag: string;
+        avatarURL: string | null;
+    };
+    content: string;
+    upvotes: Snowflake[];
+    downvotes: Snowflake[];
+};
+
 export type GuildData = {
     guild_id: Snowflake;
     channels: {
@@ -11,13 +22,7 @@ export type GuildData = {
         accepted: Snowflake,
         denied: Snowflake,
     };
-    suggestions: Record<string, {
-        posted: number;
-        author: Snowflake;
-        content: string;
-        upvotes: Snowflake[];
-        downvotes: Snowflake[];
-    }>;
+    suggestions: Record<string, Suggestion>;
 };
 
 export default class Mongo {
@@ -51,33 +56,33 @@ export default class Mongo {
             .then(doc => doc?.channels || null);
     }
 
-    async postSuggestion(guild_id: Snowflake, message_url: string, author: Snowflake, content: string): Promise<void> {
+    async postSuggestion(guild_id: Snowflake, message_url: string, authorTag: string, authorAvatar: string | null, content: string): Promise<void> {
         return void this.mongo.collection('guilds')
             .updateOne(
                 { guild_id: guild_id },
-                { $set: { [`suggestions.${message_url.replace(/\./g, '[D]')}`]: { posted: Date.now(), author, content, upvotes: [], downvotes: [] } } },
+                { $set: { [`suggestions.${message_url.replace(/\./g, '[D]')}`]: {
+                    posted: Date.now(),
+                            author: {
+                                tag: authorTag,
+                                avatarURL: authorAvatar
+                            },
+                            content: content,
+                            upvotes: [],
+                            downvotes: [] } } },
                 { upsert: true });
     }
 
-    async upvoteSuggestion(guild_id: Snowflake, message_url: string, user_id: Snowflake): Promise<void> {
-        return void this.mongo.collection('guilds')
-            .updateOne(
-                { guild_id: guild_id },
-                { $addToSet: { [`suggestions.${message_url.replace(/\./g, '[D]')}.upvotes`]: user_id } });
+    async fetchSuggestions(guild_id: Snowflake): Promise<GuildData['suggestions']> {
+        return await this.mongo.collection('guilds')
+            .findOne({ guild_id }, { projection: { _id: 0, suggestions: 1 } })
+            .then(doc => doc?.suggestions || {});
     }
 
-    async downvoteSuggestion(guild_id: Snowflake, message_url: string, user_id: Snowflake): Promise<void> {
+    async updateSuggestion(guild_id: Snowflake, message_url: string, suggestion: GuildData['suggestions'][string]): Promise<void> {
         return void this.mongo.collection('guilds')
             .updateOne(
                 { guild_id: guild_id },
-                { $addToSet: { [`suggestions.${message_url.replace(/\./g, '[D]')}.downvotes`]: user_id } });
-    }
-
-    async removeVote(guild_id: Snowflake, message_url: string, user_id: Snowflake): Promise<void> {
-        return void this.mongo.collection('guilds')
-            .updateOne(
-                { guild_id: guild_id },
-                { $pull: { [`suggestions.${message_url.replace(/\./g, '[D]')}.upvotes`]: user_id, [`suggestions.${message_url.replace(/\./g, '[D]')}.downvotes`]: user_id } });
+                { $set: { [`suggestions.${message_url.replace(/\./g, '[D]')}`]: suggestion } });
     }
 
     async removeSuggestion(guild_id: Snowflake, message_url: string): Promise<void> {

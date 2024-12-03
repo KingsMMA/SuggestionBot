@@ -57,6 +57,6 @@ export default class {
             name: `Suggestion | ${message.author.tag}`,
             autoArchiveDuration: ThreadAutoArchiveDuration.ThreeDays,
         });
-        void this.client.main.mongo.postSuggestion(message.guildId, suggestionMessage.url, message.author.id, message.content);
+        void this.client.main.mongo.postSuggestion(message.guildId, suggestionMessage.url, message.author.tag, message.author.avatarURL(), message.content);
     }
 }

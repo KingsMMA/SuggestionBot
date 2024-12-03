@@ -1,10 +1,13 @@
-import type { ClientOptions } from 'discord.js';
+import {ActionRowBuilder, ButtonBuilder, ClientOptions, Message} from 'discord.js';
 import { Client, Collection } from 'discord.js';
 import type { PathLike } from 'fs';
 import path from 'path';
 
 import type Main from '../main/main';
 import type BaseCommand from './commands/base.command';
+import {GuildData, Suggestion} from "../main/util/mongo";
+import KingsDevEmbedBuilder from "./utils/kingsDevEmbedBuilder";
+import {ButtonStyle} from "discord-api-types/v10";
 
 export default class SuggestionsBot extends Client {
     main: Main;
@@ -34,4 +37,39 @@ export default class SuggestionsBot extends Client {
             return `Unable to load event ${eventName}: ${e}`;
         }
     }
+
+    async updateSuggestion(message: Message, suggestion: Suggestion) {
+        return message.edit({
+            embeds: [
+                new KingsDevEmbedBuilder()
+                    .setAuthor({
+                        name: `Suggestion | ${suggestion.author.tag}`,
+                        iconURL: suggestion.author.avatarURL || undefined,
+                    }, )
+                    .setDescription(suggestion.content)
+                    .setColor(948466)
+            ],
+            components: [
+                new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:upvote')
+                            .setStyle(ButtonStyle.Success)
+                            .setLabel(suggestion.upvotes.length.toString())
+                            .setEmoji('👍'),
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:count')
+                            .setStyle(ButtonStyle.Primary)
+                            .setLabel((suggestion.upvotes.length - suggestion.downvotes.length).toString())
+                            .setEmoji('#️⃣'),
+                        new ButtonBuilder()
+                            .setCustomId('suggestion:downvote')
+                            .setStyle(ButtonStyle.Danger)
+                            .setLabel(suggestion.downvotes.length.toString())
+                            .setEmoji('👎'),
+                    ),
+            ],
+        });
+    }
+
 }
